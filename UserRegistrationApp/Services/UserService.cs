@@ -68,5 +68,87 @@ namespace UserRegistrationApp.Services
                 return (false, errorMessage);
             }
         }
+        
+        public async Task<(bool Success, string ErrorMessage, User User)> LoginUser(string username, string password)
+        {
+            try
+            {
+                Debug.WriteLine($"Attempting to login user: {username}");
+                
+                var loginData = new 
+                {
+                    Username = username,
+                    Password = password
+                };
+                
+                var json = JsonSerializer.Serialize(loginData);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var requestUrl = $"{BaseUrl}/user/login";
+                Debug.WriteLine($"Sending request to: {requestUrl}");
+                
+                var response = await _httpClient.PostAsync(requestUrl, content);
+                
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Debug.WriteLine($"Response received: {(int)response.StatusCode} - {responseContent}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine($"Login failed: {responseContent}");
+                    Console.WriteLine($"Login failed: {responseContent}");
+                    return (false, responseContent, null);
+                }
+                
+                var user = JsonSerializer.Deserialize<User>(responseContent, 
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                
+                return (true, string.Empty, user);
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Network error: {ex.Message}";
+                Debug.WriteLine($"Login error: {ex}");
+                Console.WriteLine($"Login error: {ex.Message}");
+                return (false, errorMessage, null);
+            }
+        }
+        
+        public async Task<bool> CheckUsernameExists(string username)
+        {
+            try
+            {
+                Debug.WriteLine($"Checking if username exists: {username}");
+                
+                var requestUrl = $"{BaseUrl}/user/check-username?username={Uri.EscapeDataString(username)}";
+                Debug.WriteLine($"Sending request to: {requestUrl}");
+                
+                var response = await _httpClient.GetAsync(requestUrl);
+                
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Debug.WriteLine($"Response received: {(int)response.StatusCode} - {responseContent}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine($"Check username failed: {responseContent}");
+                    return false;
+                }
+                
+                var result = JsonSerializer.Deserialize<UsernameCheckResponse>(responseContent,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                
+                return result?.Exists ?? false;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Check username error: {ex}");
+                return false;
+            }
+        }
+    }
+    
+    // Helper class for deserializing username check response
+    class UsernameCheckResponse
+    {
+        public bool Exists { get; set; }
     }
 } 

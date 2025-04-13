@@ -14,6 +14,8 @@ namespace UserRegistrationApp.ViewModels
         private string _password;
         private string _confirmPassword;
         private string _username;
+        private string _firstName;
+        private string _lastName;
         private string _errorMessage;
         private bool _isBusy;
 
@@ -22,13 +24,45 @@ namespace UserRegistrationApp.ViewModels
         public RegistrationViewModel(IUserService userService)
         {
             _userService = userService;
-            GenerateUsername();
             RegisterCommand = new Command(async () => await RegisterUser());
+            NavigateToLoginCommand = new Command(async () => await NavigateToLogin());
+            
+            // Property change handlers
+            PropertyChanged += OnPropertyChangedHandler;
+        }
+
+        private void OnPropertyChangedHandler(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(FirstName) || e.PropertyName == nameof(LastName))
+            {
+                GenerateUsernameFromName();
+            }
         }
 
         public ICommand RegisterCommand { get; }
+        public ICommand NavigateToLoginCommand { get; }
 
         public bool IsNotBusy => !IsBusy;
+
+        public string FirstName
+        {
+            get => _firstName;
+            set
+            {
+                _firstName = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string LastName
+        {
+            get => _lastName;
+            set
+            {
+                _lastName = value;
+                OnPropertyChanged();
+            }
+        }
 
         public string Email
         {
@@ -91,16 +125,58 @@ namespace UserRegistrationApp.ViewModels
             }
         }
 
-        private void GenerateUsername()
+        private async void GenerateUsernameFromName()
         {
-            var random = new Random();
-            var randomNumber = random.Next(1000, 9999);
-            Username = $"user{randomNumber}";
+            if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
+                return;
+
+            // Basic username format: first letter of firstname + lastname + random number
+            var firstInitial = FirstName.Substring(0, 1).ToLower();
+            var lastNamePart = LastName.ToLower();
+            if (lastNamePart.Length > 6)
+                lastNamePart = lastNamePart.Substring(0, 6);
+
+            // Try to generate a unique username
+            bool isUnique = false;
+            int attempts = 0;
+            string potentialUsername;
+
+            // Loop until we find a unique username or hit max attempts
+            while (!isUnique && attempts < 10)
+            {
+                var random = new Random();
+                var randomNumber = random.Next(100, 999);
+                potentialUsername = $"{firstInitial}{lastNamePart}{randomNumber}";
+
+                // Check if username exists
+                try
+                {
+                    bool exists = await _userService.CheckUsernameExists(potentialUsername);
+                    if (!exists)
+                    {
+                        // Found a unique username
+                        Username = potentialUsername;
+                        isUnique = true;
+                        return;
+                    }
+                }
+                catch
+                {
+                    // If there's an error checking, just continue trying
+                }
+
+                attempts++;
+            }
+
+            // If we got here, just use a fallback with timestamp
+            var timestamp = DateTime.Now.ToString("HHmmss");
+            Username = $"{firstInitial}{lastNamePart}{timestamp}";
         }
 
         private bool ValidateInput()
         {
-            if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
+            if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName) || 
+                string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
             {
                 ErrorMessage = "Please fill in all fields";
                 return false;
@@ -139,6 +215,8 @@ namespace UserRegistrationApp.ViewModels
             {
                 var user = new User
                 {
+                    FirstName = FirstName,
+                    LastName = LastName,
                     Username = Username,
                     Email = Email,
                     Password = Password
@@ -156,6 +234,8 @@ namespace UserRegistrationApp.ViewModels
                     return false;
                 }
 
+                // Navigate to login on success
+                await NavigateToLogin();
                 return true;
             }
             catch (Exception ex)
@@ -167,6 +247,11 @@ namespace UserRegistrationApp.ViewModels
             {
                 IsBusy = false;
             }
+        }
+
+        private async Task NavigateToLogin()
+        {
+            await Shell.Current.GoToAsync("//login");
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)

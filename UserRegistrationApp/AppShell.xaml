@@ -3,10 +3,24 @@
     x:Class="UserRegistrationApp.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:views="clr-namespace:UserRegistrationApp.Views">
+    xmlns:views="clr-namespace:UserRegistrationApp.Views"
+    xmlns:local="clr-namespace:UserRegistrationApp">
 
+    <!-- Login Route (Default) -->
+    <ShellContent
+        Title="Login"
+        ContentTemplate="{DataTemplate views:LoginPage}"
+        Route="login" />
+    
+    <!-- Registration Route -->
     <ShellContent
         Title="Registration"
         ContentTemplate="{DataTemplate views:RegistrationPage}"
-        Route="RegistrationPage" />
+        Route="registration" />
+        
+    <!-- Main Page Route -->
+    <ShellContent
+        Title="Main"
+        ContentTemplate="{DataTemplate local:MainPage}"
+        Route="main" />
 </Shell>

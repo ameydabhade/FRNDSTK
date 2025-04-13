@@ -32,9 +32,11 @@ public static class MauiProgram
 
 				// Register ViewModels
 				builder.Services.AddTransient<RegistrationViewModel>();
+				builder.Services.AddTransient<LoginViewModel>();
 
 				// Register Views
 				builder.Services.AddTransient<RegistrationPage>();
+				builder.Services.AddTransient<LoginPage>();
 			}
 			catch (Exception ex)
 			{

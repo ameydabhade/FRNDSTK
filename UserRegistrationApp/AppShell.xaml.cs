@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using UserRegistrationApp.Views;
 
 namespace UserRegistrationApp;
 
@@ -9,6 +10,12 @@ public partial class AppShell : Shell
 		try
 		{
 			InitializeComponent();
+
+			// Register routes for navigation
+			Routing.RegisterRoute("login", typeof(LoginPage));
+			Routing.RegisterRoute("registration", typeof(RegistrationPage));
+			Routing.RegisterRoute("main", typeof(MainPage));
+
 			Debug.WriteLine("AppShell initialized successfully");
 		}
 		catch (Exception ex)
